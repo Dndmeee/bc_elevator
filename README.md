@@ -25,3 +25,7 @@ ensure ox_lib
 ensure ox_target
 ensure bc_elevator
 ```
+
+## In-Game Preview
+
+![In-Game Preview](screenshots/ingame.png)
