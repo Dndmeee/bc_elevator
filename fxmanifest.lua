@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Dndmee'
 description 'Elevator system for Blackcard Roleplay'
-version '1.0.0'
+version '1.0.1'
 
 dependency 'ox_lib'
 
@@ -19,6 +19,7 @@ client_scripts {
 
 server_scripts {
     'server/main.lua',
+    'server/versioncheck.lua',
 }
 
 ui_page 'ui/build/index.html'
