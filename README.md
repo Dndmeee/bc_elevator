@@ -1,33 +1,27 @@
 # bc_elevator
 
-FiveM elevator system for roleplay servers.
+FiveM elevator system designed for roleplay servers.
 
 ## Features
 
 - Multi-floor elevator system
 - Configurable elevator locations
+- Smooth UI interaction
 - Optimized for RP servers
 
-## Installation
+## Requirements / Dependencies
 
-1. Copy `bc_elevator` into your `resources` folder
-2. Add to `server.cfg`:
-3. Restart server
+This resource requires the following dependencies:
 
-## Configuration
+- **ox_lib**
+- **ox_target**
 
-Edit configuration files inside the resource to customize elevator behavior.
+Make sure all dependencies are installed and started before this resource.
 
-## UI Notice
+### server.cfg order
 
-UI is provided in build/compiled form only.
-UI source code is not included.
-
-## License
-
-Custom Non-Commercial License  
-Commercial use or resale is strictly prohibited.
-
-## Author
-
-Dndmee
+```cfg
+ensure ox_lib
+ensure ox_target
+ensure bc_elevator
+```
