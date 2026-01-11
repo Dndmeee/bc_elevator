@@ -1,0 +1,17 @@
+# Dependencies / UI source
+node_modules/
+ui/node_modules/
+ui/src/
+ui/package-lock.json
+ui/pnpm-lock.yaml
+ui/yarn.lock
+ui/.env
+ui/.env.*
+
+# Logs & cache
+*.log
+.DS_Store
+
+# Archives
+*.rar
+*.zip
