@@ -1,19 +1,19 @@
--- bc_elevator
--- Copyright (c) 2026 Dndmee
--- Licensed under Custom Non-Commercial License
-
 local isOpen = false
 local currentElevator = nil
 local lastUse = 0
 local lastPanelCoords = nil
 local lastFloorId = nil
+local pendingTravel = nil
 
--- FUNCTIONS
 local function getPlayerJob()
-    local data = exports.qbx_core:GetPlayerData()
-    if data and data.job and data.job.name then
+    local ok, data = pcall(function()
+        return exports.qbx_core:GetPlayerData()
+    end)
+
+    if ok and data and data.job and data.job.name then
         return data.job.name
     end
+
     return "unemployed"
 end
 
@@ -43,6 +43,28 @@ local function getClosestFloorId(elevatorKey)
     end
 
     return closest
+end
+
+local function getFloorData(elevatorKey, floorId)
+    local elevator = Config.Elevators[elevatorKey]
+    if not elevator then return nil end
+
+    for _, floor in ipairs(elevator.floors) do
+        if floor.id == floorId then
+            return floor
+        end
+    end
+
+    return nil
+end
+
+local function closeUI()
+    isOpen = false
+    currentElevator = nil
+    lastPanelCoords = nil
+
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = "close" })
 end
 
 local function openUI(elevatorKey, panelCoords)
@@ -81,7 +103,6 @@ local function openUI(elevatorKey, panelCoords)
     local jobName = getPlayerJob()
 
     SetNuiFocus(true, true)
-
     SendNUIMessage({
         action = "open",
         elevator = {
@@ -92,15 +113,6 @@ local function openUI(elevatorKey, panelCoords)
             job = jobName
         }
     })
-end
-
-local function closeUI()
-    isOpen = false
-    currentElevator = nil
-    lastPanelCoords = nil
-
-    SetNuiFocus(false, false)
-    SendNUIMessage({ action = "close" })
 end
 
 local function playTravelSequence(travelTime)
@@ -114,7 +126,7 @@ local function playTravelSequence(travelTime)
 
     lib.progressBar({
         duration = travelTime,
-        label = 'Elevator moving...',
+        label = "Elevator moving...",
         useWhileDead = false,
         canCancel = false,
         disable = { move = true, car = true, combat = true }
@@ -149,7 +161,6 @@ CreateThread(function()
     end
 end)
 
--- NUI callbacks
 RegisterNUICallback("close", function(_, cb)
     closeUI()
     cb("ok")
@@ -157,6 +168,7 @@ end)
 
 RegisterNUICallback("selectFloor", function(data, cb)
     if not currentElevator then cb("fail") return end
+    if type(data) ~= "table" or type(data.floorId) ~= "string" then cb("fail") return end
 
     if Config.UseDistanceCheck and not isNearPanel() then
         lib.notify({
@@ -169,11 +181,16 @@ RegisterNUICallback("selectFloor", function(data, cb)
         return
     end
 
+    pendingTravel = {
+        elevatorKey = currentElevator,
+        floorId = data.floorId,
+        expires = GetGameTimer() + 10000
+    }
+
     TriggerServerEvent("bc_elevator:requestFloor", currentElevator, data.floorId)
     cb("ok")
 end)
 
--- CLIENT EVENT
 RegisterNetEvent("bc_elevator:deny", function(reason)
     lib.notify({
         title = "Elevator",
@@ -182,8 +199,20 @@ RegisterNetEvent("bc_elevator:deny", function(reason)
     })
 end)
 
-RegisterNetEvent("bc_elevator:travel", function(floor, travelTime)
-    if not floor or not floor.coords then return end
+RegisterNetEvent("bc_elevator:travel", function(elevatorKey, floorId, travelTime)
+    local now = GetGameTimer()
+
+    if not pendingTravel
+        or pendingTravel.expires < now
+        or pendingTravel.elevatorKey ~= elevatorKey
+        or pendingTravel.floorId ~= floorId then
+        return
+    end
+
+    pendingTravel = nil
+
+    local floor = getFloorData(elevatorKey, floorId)
+    if not floor then return end
 
     lastFloorId = floor.id
     closeUI()
